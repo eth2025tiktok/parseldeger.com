@@ -423,9 +423,9 @@ function MainApp() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 py-6 mt-auto">
-        <div className="container mx-auto px-4 text-center text-gray-600 text-sm">
-          © 2025 ArsaEkspertizAI - Yapay Zeka Destekli Arsa Analizi
+      <footer className="border-t border-gray-200 py-3 mt-auto">
+        <div className="container mx-auto px-4 text-center text-gray-600 text-xs">
+          © 2025 ArsaEkspertizAI
         </div>
       </footer>
     </div>
