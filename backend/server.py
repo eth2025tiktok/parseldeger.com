@@ -515,40 +515,73 @@ async def create_payment(package_id: str, request: Request, session_token: Optio
 
 @api_router.post("/payment/webhook")
 async def payment_webhook(request: Request):
-    """Handle Shopier payment webhook"""
+    """Handle Shopier payment webhook - automatically add credits after payment"""
     try:
+        # Get webhook data
         data = await request.json()
         
-        # Verify payment (in production, verify signature with SHOPIER_API_TOKEN)
-        if data.get('status') == 'success':
-            user_id = data.get('user_id')
-            package_id = data.get('package_id')
-            
-            # Get package details
-            packages_response = await get_payment_packages()
-            package = next((p for p in packages_response if p['id'] == package_id), None)
-            
-            if package and user_id:
-                # Add credits to user
-                await db.users.update_one(
-                    {"user_id": user_id},
-                    {"$inc": {"credits": package['credits']}}
-                )
-                
-                # Save payment record
-                await db.payments.insert_one({
-                    "user_id": user_id,
-                    "package_id": package_id,
-                    "credits": package['credits'],
-                    "amount": package['price'],
-                    "status": "completed",
-                    "payment_id": data.get('payment_id'),
-                    "created_at": datetime.now(timezone.utc).isoformat()
-                })
-                
-                return {"status": "success"}
+        logging.info(f"Webhook received: {data}")
         
-        return {"status": "failed"}
+        # Verify webhook signature if needed (Shopier-Signature header)
+        signature_header = request.headers.get("Shopier-Signature")
+        
+        # Extract payment information
+        order_id = data.get('order_id') or data.get('orderId') or data.get('id')
+        status = data.get('status') or data.get('paymentStatus')
+        buyer_email = data.get('buyer_email') or data.get('shippingInfo', {}).get('email')
+        
+        # Check if payment is successful
+        if status and status.lower() in ['paid', 'success', 'completed']:
+            # Try to find user by email or order metadata
+            user_id = data.get('user_id')  # Custom field if we added it
+            
+            if not user_id and buyer_email:
+                # Try to find user by email
+                user_doc = await db.users.find_one({"email": buyer_email}, {"_id": 0})
+                if user_doc:
+                    user_id = user_doc['user_id']
+            
+            if user_id:
+                # Determine package and credits from product ID or amount
+                amount = float(data.get('totals', {}).get('total', 0) or data.get('amount', 0))
+                credits_to_add = 0
+                package_id = None
+                
+                # Map amount to package
+                if 49 <= amount <= 51:  # 50 TL
+                    credits_to_add = 20
+                    package_id = "package_20"
+                elif 74 <= amount <= 76:  # 75 TL
+                    credits_to_add = 50
+                    package_id = "package_50"
+                elif 99 <= amount <= 101:  # 100 TL
+                    credits_to_add = 100
+                    package_id = "package_100"
+                
+                if credits_to_add > 0:
+                    # Add credits to user
+                    await db.users.update_one(
+                        {"user_id": user_id},
+                        {"$inc": {"credits": credits_to_add}}
+                    )
+                    
+                    # Save payment record
+                    await db.payments.insert_one({
+                        "user_id": user_id,
+                        "package_id": package_id,
+                        "credits": credits_to_add,
+                        "amount": amount,
+                        "status": "completed",
+                        "order_id": order_id,
+                        "shopier_data": data,
+                        "created_at": datetime.now(timezone.utc).isoformat()
+                    })
+                    
+                    logging.info(f"Credits added: {credits_to_add} for user {user_id}")
+                    
+                    return {"status": "success", "message": "Credits added"}
+        
+        return {"status": "received"}
     
     except Exception as e:
         logging.error(f"Webhook error: {str(e)}")
