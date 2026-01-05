@@ -515,143 +515,131 @@ async def create_payment(package_id: str, request: Request, session_token: Optio
 
 @api_router.post("/payment/webhook")
 async def payment_webhook(request: Request):
-    """Handle Shopier payment webhook - automatically add credits after payment"""
+    """Handle Shopier OSB (Otomatik Sipariş Bildirimi) webhook"""
     try:
-        # Get webhook data
-        data = await request.json()
+        # Shopier OSB credentials
+        OSB_USERNAME = "778002c5c84cec73b28e5dc61252b7c7"
+        OSB_KEY = "8464992188fb72b30d314d7087bf1538"
         
-        # Log ALL incoming data for debugging
-        logging.info(f"=== SHOPIER WEBHOOK RECEIVED ===")
-        logging.info(f"Full payload: {json.dumps(data, indent=2, ensure_ascii=False)}")
-        logging.info(f"Headers: {dict(request.headers)}")
+        # Get form data (Shopier sends as form-encoded)
+        form_data = await request.form()
         
-        # Extract payment information - support multiple Shopier formats
-        order_id = (
-            data.get('order_id') or 
-            data.get('orderId') or 
-            data.get('id') or
-            data.get('order', {}).get('id')
-        )
+        logging.info(f"=== SHOPIER OSB WEBHOOK RECEIVED ===")
+        logging.info(f"Form data keys: {list(form_data.keys())}")
         
-        status = (
-            data.get('status') or 
-            data.get('paymentStatus') or 
-            data.get('payment_status') or
-            data.get('order', {}).get('status')
-        )
+        # Check required parameters
+        if 'res' not in form_data or 'hash' not in form_data:
+            logging.error("Missing parameters: res or hash")
+            return {"status": "error", "message": "missing parameter"}
         
-        # Try multiple ways to get buyer email
-        buyer_email = (
-            data.get('buyer_email') or
-            data.get('buyerEmail') or
-            data.get('customer_email') or
-            data.get('shippingInfo', {}).get('email') or
-            data.get('shipping_info', {}).get('email') or
-            data.get('billingInfo', {}).get('email') or
-            data.get('billing_info', {}).get('email') or
-            data.get('buyer', {}).get('email') or
-            data.get('customer', {}).get('email')
-        )
+        res = form_data['res']
+        received_hash = form_data['hash']
         
-        # Try multiple ways to get amount
-        amount_str = (
-            data.get('totals', {}).get('total') or
-            data.get('total') or
-            data.get('amount') or
-            data.get('price') or
-            data.get('order', {}).get('total') or
-            "0"
-        )
+        # Verify hash (HMAC-SHA256)
+        import base64
+        calculated_hash = hmac.new(
+            OSB_KEY.encode(),
+            (res + OSB_USERNAME).encode(),
+            hashlib.sha256
+        ).hexdigest()
         
-        try:
-            amount = float(str(amount_str).replace(',', '.'))
-        except:
-            amount = 0
+        if calculated_hash != received_hash:
+            logging.error(f"Hash mismatch! Calculated: {calculated_hash}, Received: {received_hash}")
+            return {"status": "error", "message": "invalid hash"}
         
-        logging.info(f"Extracted - Order ID: {order_id}, Status: {status}, Email: {buyer_email}, Amount: {amount}")
+        # Decode base64 JSON
+        json_data = base64.b64decode(res).decode('utf-8')
+        data = json.loads(json_data)
         
-        # Check if payment is successful
-        status_lower = str(status).lower() if status else ""
-        if status_lower in ['paid', 'success', 'completed', 'approved', 'confirmed']:
-            logging.info(f"Payment status is SUCCESS: {status}")
+        logging.info(f"Decoded order data: {json.dumps(data, indent=2, ensure_ascii=False)}")
+        
+        # Extract order information
+        email = data.get('email')
+        orderid = data.get('orderid')
+        price = float(data.get('price', 0))
+        buyername = data.get('buyername')
+        buyersurname = data.get('buyersurname')
+        istest = data.get('istest', 0)
+        currency = data.get('currency', 0)  # 0=TL, 1=USD, 2=EUR
+        
+        logging.info(f"Order: {orderid}, Email: {email}, Price: {price} TL, Test: {istest}")
+        
+        # Skip test orders in production
+        if istest == 1:
+            logging.info("Test order - processing anyway for development")
+        
+        # Check if order already processed
+        existing_payment = await db.payments.find_one({"order_id": orderid}, {"_id": 0})
+        if existing_payment:
+            logging.warning(f"Order already processed: {orderid}")
+            return Response(content="success", media_type="text/plain")
+        
+        # Find user by email
+        if not email:
+            logging.error("No email in order data")
+            return Response(content="success", media_type="text/plain")
+        
+        user_doc = await db.users.find_one({"email": email}, {"_id": 0})
+        if not user_doc:
+            logging.warning(f"User not found with email: {email}")
+            return Response(content="success", media_type="text/plain")
+        
+        user_id = user_doc['user_id']
+        logging.info(f"Found user: {user_id}")
+        
+        # Determine package and credits from price
+        credits_to_add = 0
+        package_id = None
+        
+        if 48 <= price <= 52:  # 50 TL
+            credits_to_add = 20
+            package_id = "package_20"
+        elif 73 <= price <= 77:  # 75 TL
+            credits_to_add = 50
+            package_id = "package_50"
+        elif 98 <= price <= 102:  # 100 TL
+            credits_to_add = 100
+            package_id = "package_100"
+        
+        logging.info(f"Package: {package_id}, Credits to add: {credits_to_add}")
+        
+        if credits_to_add > 0:
+            # Add credits to user
+            result = await db.users.update_one(
+                {"user_id": user_id},
+                {"$inc": {"credits": credits_to_add}}
+            )
             
-            # Try to find user by email
-            user_id = data.get('user_id')
+            logging.info(f"Credits update: {result.modified_count} user(s) updated")
             
-            if not user_id and buyer_email:
-                logging.info(f"Looking for user with email: {buyer_email}")
-                user_doc = await db.users.find_one({"email": buyer_email}, {"_id": 0})
-                if user_doc:
-                    user_id = user_doc['user_id']
-                    logging.info(f"Found user: {user_id}")
-                else:
-                    logging.warning(f"No user found with email: {buyer_email}")
+            # Save payment record
+            await db.payments.insert_one({
+                "user_id": user_id,
+                "package_id": package_id,
+                "credits": credits_to_add,
+                "amount": price,
+                "status": "completed",
+                "order_id": orderid,
+                "buyer_email": email,
+                "buyer_name": f"{buyername} {buyersurname}",
+                "is_test": istest,
+                "shopier_data": data,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
             
-            if user_id:
-                # Determine package and credits from amount
-                credits_to_add = 0
-                package_id = None
-                
-                # Map amount to package with tolerance
-                if 48 <= amount <= 52:  # 50 TL ± 2
-                    credits_to_add = 20
-                    package_id = "package_20"
-                elif 73 <= amount <= 77:  # 75 TL ± 2
-                    credits_to_add = 50
-                    package_id = "package_50"
-                elif 98 <= amount <= 102:  # 100 TL ± 2
-                    credits_to_add = 100
-                    package_id = "package_100"
-                
-                logging.info(f"Package detected: {package_id}, Credits to add: {credits_to_add}")
-                
-                if credits_to_add > 0:
-                    # Check if this payment already processed
-                    existing_payment = await db.payments.find_one({"order_id": order_id}, {"_id": 0})
-                    if existing_payment:
-                        logging.warning(f"Payment already processed: {order_id}")
-                        return {"status": "already_processed", "message": "Payment already processed"}
-                    
-                    # Add credits to user
-                    result = await db.users.update_one(
-                        {"user_id": user_id},
-                        {"$inc": {"credits": credits_to_add}}
-                    )
-                    
-                    logging.info(f"Credits update result: {result.modified_count} document(s) modified")
-                    
-                    # Save payment record
-                    await db.payments.insert_one({
-                        "user_id": user_id,
-                        "package_id": package_id,
-                        "credits": credits_to_add,
-                        "amount": amount,
-                        "status": "completed",
-                        "order_id": order_id,
-                        "buyer_email": buyer_email,
-                        "shopier_data": data,
-                        "created_at": datetime.now(timezone.utc).isoformat()
-                    })
-                    
-                    # Verify credits were added
-                    updated_user = await db.users.find_one({"user_id": user_id}, {"_id": 0, "credits": 1})
-                    logging.info(f"✓✓✓ SUCCESS! User {user_id} now has {updated_user.get('credits', 0)} credits")
-                    
-                    return {"status": "success", "message": "Credits added", "credits_added": credits_to_add}
-                else:
-                    logging.warning(f"Could not determine package for amount: {amount}")
-                    return {"status": "error", "message": f"Unknown package amount: {amount}"}
-            else:
-                logging.error(f"Could not find user. Email: {buyer_email}")
-                return {"status": "error", "message": "User not found"}
+            # Verify credits
+            updated_user = await db.users.find_one({"user_id": user_id}, {"_id": 0, "credits": 1})
+            logging.info(f"✓✓✓ SUCCESS! User {user_id} ({email}) now has {updated_user.get('credits', 0)} credits")
+            
+            # Shopier expects "success" response
+            return Response(content="success", media_type="text/plain")
         else:
-            logging.info(f"Payment status not successful: {status}")
-        
-        return {"status": "received", "message": "Webhook received"}
+            logging.warning(f"Unknown package amount: {price}")
+            return Response(content="success", media_type="text/plain")
     
     except Exception as e:
-        logging.error(f"❌ WEBHOOK ERROR: {str(e)}", exc_info=True)
-        return {"status": "error", "message": str(e)}
+        logging.error(f"❌ SHOPIER OSB ERROR: {str(e)}", exc_info=True)
+        return Response(content="error", media_type="text/plain")
 
 @api_router.get("/")
 async def root():
