@@ -1,18 +1,78 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate } from "react-router-dom";
 import "@/App.css";
 import axios from "axios";
-import { Loader2 } from "lucide-react";
+import { Loader2, LogOut, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Toaster, toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-function App() {
+function AuthCallback() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const hasProcessed = useRef(false);
+
+  useEffect(() => {
+    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
+    if (hasProcessed.current) return;
+    hasProcessed.current = true;
+
+    const processSession = async () => {
+      const hash = location.hash;
+      const params = new URLSearchParams(hash.substring(1));
+      const sessionId = params.get('session_id');
+
+      if (!sessionId) {
+        navigate('/');
+        return;
+      }
+
+      try {
+        const response = await axios.post(`${API}/auth/session`, 
+          { session_id: sessionId },
+          { withCredentials: true }
+        );
+        
+        toast.success('Giriş başarılı!');
+        navigate('/', { state: { user: response.data }, replace: true });
+      } catch (error) {
+        console.error('Auth error:', error);
+        toast.error('Giriş yapılırken hata oluştu');
+        navigate('/');
+      }
+    };
+
+    processSession();
+  }, [location, navigate]);
+
+  return (
+    <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-black" />
+        <p className="text-gray-600">Giriş yapılıyor...</p>
+      </div>
+    </div>
+  );
+}
+
+function MainApp() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [user, setUser] = useState(location.state?.user || null);
+  const [isAuthenticated, setIsAuthenticated] = useState(location.state?.user ? true : null);
   const [formData, setFormData] = useState({
     il: "",
     ilce: "",
@@ -21,31 +81,70 @@ function App() {
     parsel: ""
   });
   
-  const [sessionId, setSessionId] = useState(null);
   const [remainingCredits, setRemainingCredits] = useState(5);
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [packages, setPackages] = useState([]);
 
-  // Initialize session
   useEffect(() => {
-    const storedSessionId = localStorage.getItem('sessionId');
-    if (storedSessionId) {
-      setSessionId(storedSessionId);
-      fetchRemainingCredits(storedSessionId);
-    } else {
-      const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      localStorage.setItem('sessionId', newSessionId);
-      setSessionId(newSessionId);
-    }
-  }, []);
+    if (location.state?.user) return;
 
-  const fetchRemainingCredits = async (sid) => {
+    const checkAuth = async () => {
+      try {
+        const response = await axios.get(`${API}/auth/me`, {
+          withCredentials: true
+        });
+        setUser(response.data);
+        setIsAuthenticated(true);
+      } catch (error) {
+        setIsAuthenticated(false);
+      }
+    };
+
+    checkAuth();
+  }, [location.state]);
+
+  useEffect(() => {
+    fetchCredits();
+    fetchPackages();
+  }, [user]);
+
+  const fetchCredits = async () => {
     try {
-      const response = await axios.get(`${API}/remaining-credits/${sid}`);
+      const response = await axios.get(`${API}/credits`, {
+        withCredentials: true
+      });
       setRemainingCredits(response.data.remaining_credits);
     } catch (err) {
       console.error('Error fetching credits:', err);
+    }
+  };
+
+  const fetchPackages = async () => {
+    try {
+      const response = await axios.get(`${API}/payment/packages`);
+      setPackages(response.data);
+    } catch (err) {
+      console.error('Error fetching packages:', err);
+    }
+  };
+
+  const handleLogin = () => {
+    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
+    const redirectUrl = window.location.origin;
+    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+  };
+
+  const handleLogout = async () => {
+    try {
+      await axios.post(`${API}/auth/logout`, {}, { withCredentials: true });
+      setUser(null);
+      setIsAuthenticated(false);
+      toast.success('Çıkış yapıldı');
+    } catch (err) {
+      console.error('Logout error:', err);
     }
   };
 
@@ -70,9 +169,8 @@ function App() {
     setLoading(true);
 
     try {
-      const response = await axios.post(`${API}/analyze-property`, {
-        ...formData,
-        session_id: sessionId
+      const response = await axios.post(`${API}/analyze-property`, formData, {
+        withCredentials: true
       });
 
       setAnalysis(response.data.analysis);
@@ -82,10 +180,42 @@ function App() {
       const errorMsg = err.response?.data?.detail || 'Analiz yapılırken bir hata oluştu';
       setError(errorMsg);
       toast.error(errorMsg);
+      
+      if (err.response?.status === 403) {
+        setShowPaymentDialog(true);
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  const handlePurchase = async (packageId) => {
+    if (!user) {
+      toast.error('Satın almak için giriş yapmalısınız');
+      handleLogin();
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${API}/payment/create`, 
+        { package_id: packageId },
+        { withCredentials: true }
+      );
+      
+      // Redirect to Shopier payment page
+      window.location.href = response.data.payment_url;
+    } catch (err) {
+      toast.error('Ödeme oluşturulurken hata oluştu');
+    }
+  };
+
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-black" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -94,19 +224,56 @@ function App() {
       {/* Header */}
       <header className="border-b border-gray-200">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div data-testid="logo" className="text-xl font-semibold text-black">
+          <div className="flex items-center space-x-3">
+            <img 
+              src="https://customer-assets.emergentagent.com/job_ed4123bb-8167-4b92-b8f5-23b60fd1109e/artifacts/sedpsqd8_IMG_20260105_212426.jpg"
+              alt="ArsaEkspertizAI Logo"
+              className="h-8 w-8"
+              data-testid="logo-image"
+            />
+            <div data-testid="logo" className="text-lg font-semibold text-black">
               ArsaEkspertizAI
             </div>
           </div>
-          <div data-testid="credits-badge" className="bg-black text-white px-4 py-2 rounded-full text-sm font-medium">
-            {remainingCredits}/5 Hak Kaldı
+          <div className="flex items-center space-x-4">
+            <div data-testid="credits-badge" className="bg-black text-white px-4 py-2 rounded-full text-sm font-medium">
+              {remainingCredits} Hak
+            </div>
+            {user ? (
+              <div className="flex items-center space-x-3">
+                <span className="text-sm text-gray-600">{user.name}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleLogout}
+                  data-testid="logout-button"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                onClick={handleLogin}
+                data-testid="login-button"
+                className="bg-black hover:bg-gray-800 text-white"
+              >
+                Giriş Yap
+              </Button>
+            )}
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 max-w-4xl">
+        {!user && remainingCredits <= 3 && remainingCredits > 0 && (
+          <Alert className="mb-6 border-black">
+            <AlertDescription>
+              <strong>İpucu:</strong> Giriş yaparak +5 hak daha kazanabilirsiniz!
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="mb-8 text-center">
           <h1 className="text-4xl sm:text-5xl font-bold text-black mb-3">
             Arsa İmar Durumu Analizi
@@ -197,13 +364,15 @@ function App() {
                 type="submit"
                 data-testid="analyze-button"
                 disabled={loading || remainingCredits === 0}
-                className="w-full bg-black hover:bg-gray-800 text-white py-6 text-lg font-semibold rounded-md transition-colors"
+                className="w-full bg-black hover:bg-gray-800 text-white py-6 text-lg font-semibold rounded-md"
               >
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Analiz Yapılıyor...
                   </>
+                ) : remainingCredits === 0 ? (
+                  'Krediniz Bitti - Satın Alın'
                 ) : (
                   'Analiz Yap'
                 )}
@@ -226,13 +395,57 @@ function App() {
               <CardTitle className="text-2xl">Analiz Sonucu</CardTitle>
             </CardHeader>
             <CardContent>
-              <div data-testid="analysis-content" className="prose prose-sm sm:prose max-w-none text-gray-800 whitespace-pre-wrap">
+              <div data-testid="analysis-content" className="text-gray-800 whitespace-pre-wrap leading-relaxed">
                 {analysis}
               </div>
             </CardContent>
           </Card>
         )}
       </main>
+
+      {/* Payment Dialog */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Kredi Satın Al</DialogTitle>
+            <DialogDescription>
+              Analizlerinize devam etmek için kredi paketi seçin
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            {packages.map((pkg) => (
+              <Card 
+                key={pkg.id} 
+                className={`border-2 ${pkg.popular ? 'border-black' : 'border-gray-200'} hover:shadow-lg transition-shadow cursor-pointer`}
+                onClick={() => handlePurchase(pkg.id)}
+                data-testid={`package-${pkg.id}`}
+              >
+                <CardHeader>
+                  {pkg.popular && (
+                    <div className="text-xs font-semibold bg-black text-white px-2 py-1 rounded w-fit mb-2">
+                      POPÜLER
+                    </div>
+                  )}
+                  <CardTitle className="text-xl">{pkg.name}</CardTitle>
+                  <CardDescription>{pkg.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-black mb-4">
+                    {pkg.price} TL
+                  </div>
+                  <Button 
+                    className="w-full bg-black hover:bg-gray-800 text-white"
+                    data-testid={`buy-${pkg.id}`}
+                  >
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Satın Al
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Footer */}
       <footer className="border-t border-gray-200 mt-12 py-6">
@@ -241,6 +454,30 @@ function App() {
         </div>
       </footer>
     </div>
+  );
+}
+
+function AppRouter() {
+  const location = useLocation();
+  
+  // Check for session_id in URL hash (synchronous during render)
+  if (location.hash?.includes('session_id=')) {
+    return <AuthCallback />;
+  }
+  
+  return (
+    <Routes>
+      <Route path="/" element={<MainApp />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AppRouter />
+    </BrowserRouter>
   );
 }
 
