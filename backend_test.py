@@ -3,12 +3,13 @@ import sys
 import json
 from datetime import datetime
 import uuid
+import time
 
 class ArsaEkspertizAPITester:
     def __init__(self, base_url="https://parseldeger.preview.emergentagent.com"):
         self.base_url = base_url
         self.api_url = f"{base_url}/api"
-        self.session_id = f"test-session-{uuid.uuid4()}"
+        self.session_token = None
         self.tests_run = 0
         self.tests_passed = 0
         self.test_results = []
