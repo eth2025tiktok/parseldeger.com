@@ -298,7 +298,6 @@ class ArsaEkspertizAPITester:
         """Run all backend tests"""
         print("🚀 Starting ArsaEkspertizAI Backend API Tests")
         print(f"📍 Base URL: {self.base_url}")
-        print(f"🆔 Test Session ID: {self.session_id}")
         print("=" * 60)
         
         # Test sequence
