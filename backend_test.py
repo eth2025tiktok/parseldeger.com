@@ -239,6 +239,61 @@ class ArsaEkspertizAPITester:
             self.log_test("Credits - After Exhaustion", False, str(e))
             return False
 
+    def test_payment_packages(self):
+        """Test payment packages endpoint"""
+        try:
+            response = requests.get(f"{self.api_url}/payment/packages", timeout=10)
+            success = response.status_code == 200
+            details = f"Status: {response.status_code}"
+            
+            if success:
+                data = response.json()
+                if isinstance(data, list) and len(data) > 0:
+                    # Check if packages have required fields
+                    required_fields = ['id', 'name', 'credits', 'price', 'description']
+                    first_package = data[0]
+                    missing_fields = [field for field in required_fields if field not in first_package]
+                    
+                    if missing_fields:
+                        success = False
+                        details += f", Missing fields in package: {missing_fields}"
+                    else:
+                        details += f", Found {len(data)} packages"
+                        # Check for expected packages
+                        package_ids = [pkg.get('id') for pkg in data]
+                        expected_ids = ['package_20', 'package_50', 'package_100']
+                        if not all(pkg_id in package_ids for pkg_id in expected_ids):
+                            details += f", Missing expected packages. Found: {package_ids}"
+                else:
+                    success = False
+                    details += ", No packages returned"
+            
+            self.log_test("Payment Packages", success, details)
+            return success, response.json() if success else {}
+        except Exception as e:
+            self.log_test("Payment Packages", False, str(e))
+            return False, {}
+
+    def test_auth_me_unauthenticated(self):
+        """Test /auth/me endpoint without authentication"""
+        try:
+            response = requests.get(f"{self.api_url}/auth/me", timeout=10)
+            success = response.status_code == 401
+            details = f"Status: {response.status_code}"
+            
+            if not success:
+                try:
+                    data = response.json()
+                    details += f", Response: {data}"
+                except:
+                    details += f", Response: {response.text[:100]}"
+            
+            self.log_test("Auth Me - Unauthenticated", success, details)
+            return success
+        except Exception as e:
+            self.log_test("Auth Me - Unauthenticated", False, str(e))
+            return False
+
     def run_all_tests(self):
         """Run all backend tests"""
         print("🚀 Starting ArsaEkspertizAI Backend API Tests")
