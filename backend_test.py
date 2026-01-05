@@ -132,9 +132,8 @@ class ArsaEkspertizAPITester:
         try:
             test_data = {
                 "il": "İstanbul",
-                "ilce": "Kadıköy",
+                "ilce": "Kadıköy"
                 # Missing mahalle, ada, parsel
-                "session_id": self.session_id
             }
             
             response = requests.post(
