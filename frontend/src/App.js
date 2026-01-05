@@ -319,7 +319,7 @@ function MainApp() {
                     id="ilce"
                     name="ilce"
                     data-testid="input-ilce"
-                    placeholder="Örn: Seyhan"
+                    placeholder="Örn: Beşiktaş"
                     value={formData.ilce}
                     onChange={handleInputChange}
                     className="mt-1 border-gray-300"
