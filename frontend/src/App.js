@@ -491,11 +491,14 @@ function PackagesPage() {
       
       if (newCredits > remainingCredits) {
         setRemainingCredits(newCredits);
-        toast.success(`Harika! ${newCredits - remainingCredits} kredi hesabınıza eklendi!`);
+        const addedCredits = newCredits - remainingCredits;
+        toast.success(`🎉 Harika! ${addedCredits} kredi hesabınıza eklendi!`, {
+          duration: 5000
+        });
         // Clear URL parameters
         navigate('/paketler', { replace: true });
       } else {
-        toast.info('Ödeme işleniyor. Birkaç saniye içinde kredileriniz yüklenecek...');
+        toast.info('⏳ Ödeme işleniyor. Birkaç saniye içinde kredileriniz yüklenecek...');
         // Retry after 3 seconds
         setTimeout(() => {
           checkCreditsAfterPayment();
@@ -503,6 +506,7 @@ function PackagesPage() {
       }
     } catch (err) {
       console.error('Credit check error:', err);
+      toast.error('Kredi kontrolü sırasında bir hata oluştu. Lütfen sayfayı yenileyin.');
     }
   };
 
