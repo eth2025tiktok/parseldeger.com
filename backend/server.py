@@ -34,7 +34,16 @@ api_router = APIRouter(prefix="/api")
 BRAVE_API_KEY = os.environ.get('BRAVE_API_KEY')
 BRAVE_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search"
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+SHOPIER_API_KEY = os.environ.get('SHOPIER_API_KEY')
+SHOPIER_CLIENT_SECRET = os.environ.get('SHOPIER_CLIENT_SECRET')
 SHOPIER_API_TOKEN = os.environ.get('SHOPIER_API_TOKEN')
+
+# Shopier product mappings
+SHOPIER_PRODUCTS = {
+    "package_20": {"url": "https://shopier.com/39003278", "product_id": "39003278"},
+    "package_50": {"url": "https://shopier.com/42901869", "product_id": "42901869"},
+    "package_100": {"url": "https://shopier.com/42901899", "product_id": "42901899"}
+}
 
 # Define Models
 class User(BaseModel):
