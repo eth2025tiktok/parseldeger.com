@@ -304,11 +304,13 @@ class ArsaEkspertizAPITester:
         # Test sequence
         tests = [
             self.test_root_endpoint,
-            self.test_remaining_credits_new_session,
-            self.test_property_analysis,
+            self.test_credits_anonymous,
+            self.test_property_analysis_anonymous,
             self.test_property_analysis_missing_fields,
             self.test_credits_exhaustion,
-            self.test_remaining_credits_after_usage
+            self.test_credits_after_exhaustion,
+            self.test_payment_packages,
+            self.test_auth_me_unauthenticated
         ]
         
         for test in tests:
