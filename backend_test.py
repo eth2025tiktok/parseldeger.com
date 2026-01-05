@@ -216,10 +216,10 @@ class ArsaEkspertizAPITester:
             self.log_test("Credits Exhaustion", False, str(e))
             return False
 
-    def test_remaining_credits_after_usage(self):
-        """Test remaining credits after exhaustion"""
+    def test_credits_after_exhaustion(self):
+        """Test credits endpoint after exhaustion"""
         try:
-            response = requests.get(f"{self.api_url}/remaining-credits/{self.session_id}", timeout=10)
+            response = requests.get(f"{self.api_url}/credits", timeout=10)
             success = response.status_code == 200
             details = f"Status: {response.status_code}"
             
@@ -227,15 +227,16 @@ class ArsaEkspertizAPITester:
                 data = response.json()
                 expected_credits = 0
                 actual_credits = data.get('remaining_credits', -1)
-                success = actual_credits == expected_credits
-                details += f", Credits: {actual_credits}/{data.get('total_credits', 0)}"
+                is_authenticated = data.get('is_authenticated', True)
+                success = actual_credits == expected_credits and not is_authenticated
+                details += f", Credits: {actual_credits}, Authenticated: {is_authenticated}"
                 if not success:
-                    details += f" (Expected: {expected_credits})"
+                    details += f" (Expected: {expected_credits} credits, authenticated: False)"
             
-            self.log_test("Remaining Credits - After Exhaustion", success, details)
+            self.log_test("Credits - After Exhaustion", success, details)
             return success
         except Exception as e:
-            self.log_test("Remaining Credits - After Exhaustion", False, str(e))
+            self.log_test("Credits - After Exhaustion", False, str(e))
             return False
 
     def run_all_tests(self):
