@@ -481,6 +481,9 @@ function PackagesPage() {
   const handlePurchase = (pkg) => {
     setSelectedPackage(pkg);
     setShowPaymentModal(true);
+    // Open Shopier in new tab
+    const shopierUrl = getShopierUrlWithUserInfo(pkg.id, user);
+    window.open(shopierUrl, '_blank');
   };
 
   const checkPaymentStatus = async () => {
