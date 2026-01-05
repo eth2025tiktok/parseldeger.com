@@ -97,7 +97,7 @@ function Header({ user, remainingCredits, onLogin, onLogout }) {
             data-testid="logo-image"
           />
           <div data-testid="logo" className="text-lg font-semibold text-black">
-            ArsaEkspertizAI
+            parseldeğer.com
           </div>
         </div>
         <div className="flex items-center space-x-2 sm:space-x-4">
