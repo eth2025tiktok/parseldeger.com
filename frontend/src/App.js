@@ -599,7 +599,7 @@ function PackagesPage() {
           ))}
         </div>
 
-        <div className="mt-12 text-center text-gray-600 text-sm">
+        <div className="mt-6 sm:mt-8 text-center text-gray-600 text-xs sm:text-sm">
           <p>Ödeme sonrası kredileriniz otomatik olarak hesabınıza yüklenecektir.</p>
         </div>
       </main>
