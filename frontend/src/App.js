@@ -425,7 +425,7 @@ function MainApp() {
       {/* Footer */}
       <footer className="border-t border-gray-200 py-3 mt-auto">
         <div className="container mx-auto px-4 text-center text-gray-600 text-xs">
-          © 2025 ArsaEkspertizAI
+          © 2026 parseldeğer.com
         </div>
       </footer>
     </div>
