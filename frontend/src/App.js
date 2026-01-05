@@ -237,18 +237,24 @@ function MainApp() {
 
       setAnalysis(response.data.analysis);
       setRemainingCredits(response.data.remaining_credits);
-      toast.success('Analiz tamamlandı!');
+      toast.success('✓ Analiz tamamlandı!');
     } catch (err) {
       const errorMsg = err.response?.data?.detail || 'Analiz yapılırken bir hata oluştu';
       setError(errorMsg);
-      toast.error(errorMsg);
       
       if (err.response?.status === 403) {
         if (user) {
-          navigate('/paketler');
+          toast.error('❌ Krediniz bitti! Lütfen paket satın alın.');
+          setTimeout(() => navigate('/paketler'), 2000);
         } else {
-          toast.info('Giriş yaparak +5 hak daha kazanın!');
+          toast.error('❌ Ücretsiz hakkınız doldu! Giriş yaparak +5 hak kazanın veya paket satın alın.');
         }
+      } else if (err.response?.status === 400) {
+        toast.error('⚠️ Hatalı bilgi girdiniz. Lütfen ada ve parsel numarasını kontrol edin.');
+      } else if (err.response?.status === 500) {
+        toast.error('⚠️ Analiz yapılırken bir sorun oluştu. Lütfen tekrar deneyin.');
+      } else {
+        toast.error(errorMsg);
       }
     } finally {
       setLoading(false);
