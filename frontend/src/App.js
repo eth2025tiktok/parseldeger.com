@@ -2,20 +2,13 @@ import { useState, useEffect, useRef } from "react";
 import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate } from "react-router-dom";
 import "@/App.css";
 import axios from "axios";
-import { Loader2, LogOut, CreditCard } from "lucide-react";
+import { Loader2, LogOut, CreditCard, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Toaster, toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -68,6 +61,64 @@ function AuthCallback() {
   );
 }
 
+function Header({ user, remainingCredits, onLogin, onLogout }) {
+  const navigate = useNavigate();
+  
+  return (
+    <header className="border-b border-gray-200">
+      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigate('/')}>
+          <img 
+            src="https://customer-assets.emergentagent.com/job_ed4123bb-8167-4b92-b8f5-23b60fd1109e/artifacts/sedpsqd8_IMG_20260105_212426.jpg"
+            alt="ArsaEkspertizAI Logo"
+            className="h-8 w-8"
+            data-testid="logo-image"
+          />
+          <div data-testid="logo" className="text-lg font-semibold text-black">
+            ArsaEkspertizAI
+          </div>
+        </div>
+        <div className="flex items-center space-x-4">
+          <div data-testid="credits-badge" className="border-2 border-black text-black px-4 py-2 rounded-full text-sm font-medium">
+            {remainingCredits} Hak
+          </div>
+          {user ? (
+            <div className="flex items-center space-x-3">
+              <span className="text-sm text-gray-600 hidden sm:inline">{user.name}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/paketler')}
+                data-testid="packages-button"
+                className="hidden sm:inline-flex"
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                Paketler
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onLogout}
+                data-testid="logout-button"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <Button
+              onClick={onLogin}
+              data-testid="login-button"
+              className="bg-black hover:bg-gray-800 text-white"
+            >
+              Giriş Yap
+            </Button>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}
+
 function MainApp() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -85,8 +136,6 @@ function MainApp() {
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const [packages, setPackages] = useState([]);
 
   useEffect(() => {
     if (location.state?.user) return;
@@ -108,7 +157,6 @@ function MainApp() {
 
   useEffect(() => {
     fetchCredits();
-    fetchPackages();
   }, [user]);
 
   const fetchCredits = async () => {
@@ -119,15 +167,6 @@ function MainApp() {
       setRemainingCredits(response.data.remaining_credits);
     } catch (err) {
       console.error('Error fetching credits:', err);
-    }
-  };
-
-  const fetchPackages = async () => {
-    try {
-      const response = await axios.get(`${API}/payment/packages`);
-      setPackages(response.data);
-    } catch (err) {
-      console.error('Error fetching packages:', err);
     }
   };
 
@@ -143,6 +182,7 @@ function MainApp() {
       setUser(null);
       setIsAuthenticated(false);
       toast.success('Çıkış yapıldı');
+      navigate('/');
     } catch (err) {
       console.error('Logout error:', err);
     }
@@ -182,30 +222,14 @@ function MainApp() {
       toast.error(errorMsg);
       
       if (err.response?.status === 403) {
-        setShowPaymentDialog(true);
+        if (user) {
+          navigate('/paketler');
+        } else {
+          toast.info('Giriş yaparak +5 hak daha kazanın!');
+        }
       }
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handlePurchase = async (packageId) => {
-    if (!user) {
-      toast.error('Satın almak için giriş yapmalısınız');
-      handleLogin();
-      return;
-    }
-
-    try {
-      const response = await axios.post(`${API}/payment/create`, 
-        { package_id: packageId },
-        { withCredentials: true }
-      );
-      
-      // Redirect to Shopier payment page
-      window.location.href = response.data.payment_url;
-    } catch (err) {
-      toast.error('Ödeme oluşturulurken hata oluştu');
     }
   };
 
@@ -218,54 +242,18 @@ function MainApp() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white flex flex-col">
       <Toaster position="top-center" />
       
-      {/* Header */}
-      <header className="border-b border-gray-200">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <img 
-              src="https://customer-assets.emergentagent.com/job_ed4123bb-8167-4b92-b8f5-23b60fd1109e/artifacts/sedpsqd8_IMG_20260105_212426.jpg"
-              alt="ArsaEkspertizAI Logo"
-              className="h-8 w-8"
-              data-testid="logo-image"
-            />
-            <div data-testid="logo" className="text-lg font-semibold text-black">
-              ArsaEkspertizAI
-            </div>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div data-testid="credits-badge" className="bg-black text-white px-4 py-2 rounded-full text-sm font-medium">
-              {remainingCredits} Hak
-            </div>
-            {user ? (
-              <div className="flex items-center space-x-3">
-                <span className="text-sm text-gray-600">{user.name}</span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleLogout}
-                  data-testid="logout-button"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <Button
-                onClick={handleLogin}
-                data-testid="login-button"
-                className="bg-black hover:bg-gray-800 text-white"
-              >
-                Giriş Yap
-              </Button>
-            )}
-          </div>
-        </div>
-      </header>
+      <Header 
+        user={user} 
+        remainingCredits={remainingCredits} 
+        onLogin={handleLogin} 
+        onLogout={handleLogout} 
+      />
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
+      <main className="flex-1 container mx-auto px-4 py-8 max-w-4xl">
         {!user && remainingCredits <= 3 && remainingCredits > 0 && (
           <Alert className="mb-6 border-black">
             <AlertDescription>
@@ -276,11 +264,8 @@ function MainApp() {
 
         <div className="mb-8 text-center">
           <h1 className="text-4xl sm:text-5xl font-bold text-black mb-3">
-            Arsa İmar Durumu Analizi
+            Yapay Zeka Arsa Analizi
           </h1>
-          <p className="text-base sm:text-lg text-gray-600">
-            Ada ve parsel bilgilerinizi girin, yapay zeka destekli imar analizi alın
-          </p>
         </div>
 
         {/* Form Card */}
@@ -372,11 +357,23 @@ function MainApp() {
                     Analiz Yapılıyor...
                   </>
                 ) : remainingCredits === 0 ? (
-                  'Krediniz Bitti - Satın Alın'
+                  user ? 'Krediniz Bitti - Paketlere Git' : 'Giriş Yapın'
                 ) : (
                   'Analiz Yap'
                 )}
               </Button>
+              
+              {remainingCredits === 0 && user && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate('/paketler')}
+                  className="w-full border-black text-black hover:bg-gray-100"
+                >
+                  <CreditCard className="mr-2 h-5 w-5" />
+                  Kredi Paketlerini Görüntüle
+                </Button>
+              )}
             </form>
           </CardContent>
         </Card>
@@ -403,52 +400,158 @@ function MainApp() {
         )}
       </main>
 
-      {/* Payment Dialog */}
-      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle className="text-2xl">Kredi Satın Al</DialogTitle>
-            <DialogDescription>
-              Analizlerinize devam etmek için kredi paketi seçin
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-            {packages.map((pkg) => (
-              <Card 
-                key={pkg.id} 
-                className={`border-2 ${pkg.popular ? 'border-black' : 'border-gray-200'} hover:shadow-lg transition-shadow cursor-pointer`}
-                onClick={() => handlePurchase(pkg.id)}
-                data-testid={`package-${pkg.id}`}
-              >
-                <CardHeader>
-                  {pkg.popular && (
-                    <div className="text-xs font-semibold bg-black text-white px-2 py-1 rounded w-fit mb-2">
-                      POPÜLER
-                    </div>
-                  )}
-                  <CardTitle className="text-xl">{pkg.name}</CardTitle>
-                  <CardDescription>{pkg.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-black mb-4">
-                    {pkg.price} TL
-                  </div>
-                  <Button 
-                    className="w-full bg-black hover:bg-gray-800 text-white"
-                    data-testid={`buy-${pkg.id}`}
-                  >
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Satın Al
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
-
       {/* Footer */}
-      <footer className="border-t border-gray-200 mt-12 py-6">
+      <footer className="border-t border-gray-200 py-6 mt-auto">
+        <div className="container mx-auto px-4 text-center text-gray-600 text-sm">
+          © 2025 ArsaEkspertizAI - Yapay Zeka Destekli Arsa Analizi
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function PackagesPage() {
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [packages, setPackages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [remainingCredits, setRemainingCredits] = useState(0);
+
+  useEffect(() => {
+    checkAuthAndFetch();
+  }, []);
+
+  const checkAuthAndFetch = async () => {
+    try {
+      const userResponse = await axios.get(`${API}/auth/me`, {
+        withCredentials: true
+      });
+      setUser(userResponse.data);
+      
+      const [packagesRes, creditsRes] = await Promise.all([
+        axios.get(`${API}/payment/packages`),
+        axios.get(`${API}/credits`, { withCredentials: true })
+      ]);
+      
+      setPackages(packagesRes.data);
+      setRemainingCredits(creditsRes.data.remaining_credits);
+    } catch (error) {
+      console.error('Auth error:', error);
+      toast.error('Lütfen giriş yapın');
+      navigate('/');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await axios.post(`${API}/auth/logout`, {}, { withCredentials: true });
+      toast.success('Çıkış yapıldı');
+      navigate('/');
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  };
+
+  const handlePurchase = async (packageId) => {
+    try {
+      const response = await axios.post(`${API}/payment/create`, 
+        { package_id: packageId },
+        { withCredentials: true }
+      );
+      
+      // Redirect to Shopier payment page
+      window.location.href = response.data.payment_url;
+    } catch (err) {
+      toast.error('Ödeme oluşturulurken hata oluştu');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-black" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-white flex flex-col">
+      <Toaster position="top-center" />
+      
+      <Header 
+        user={user} 
+        remainingCredits={remainingCredits} 
+        onLogin={() => {}} 
+        onLogout={handleLogout} 
+      />
+
+      <main className="flex-1 container mx-auto px-4 py-8 max-w-6xl">
+        <div className="mb-8">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/')}
+            className="mb-4"
+            data-testid="back-button"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Ana Sayfaya Dön
+          </Button>
+          
+          <div className="text-center">
+            <h1 className="text-4xl sm:text-5xl font-bold text-black mb-3">
+              Kredi Paketleri
+            </h1>
+            <p className="text-base sm:text-lg text-gray-600">
+              Size uygun paketi seçin ve analizlerinize devam edin
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {packages.map((pkg) => (
+            <Card 
+              key={pkg.id} 
+              className={`border-2 ${pkg.popular ? 'border-black scale-105' : 'border-gray-200'} hover:shadow-xl transition-all`}
+              data-testid={`package-${pkg.id}`}
+            >
+              <CardHeader>
+                {pkg.popular && (
+                  <div className="text-xs font-semibold bg-black text-white px-3 py-1 rounded-full w-fit mb-2">
+                    EN POPÜLER
+                  </div>
+                )}
+                <CardTitle className="text-2xl">{pkg.name}</CardTitle>
+                <CardDescription className="text-base">{pkg.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-4xl font-bold text-black">
+                  {pkg.price} TL
+                </div>
+                <div className="text-sm text-gray-600">
+                  {pkg.credits} analiz hakkı
+                </div>
+                <Button 
+                  onClick={() => handlePurchase(pkg.id)}
+                  className="w-full bg-black hover:bg-gray-800 text-white py-6 text-base"
+                  data-testid={`buy-${pkg.id}`}
+                >
+                  <CreditCard className="mr-2 h-5 w-5" />
+                  Satın Al
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="mt-12 text-center text-gray-600 text-sm">
+          <p>Ödeme sonrası kredileriniz otomatik olarak hesabınıza yüklenecektir.</p>
+          <p className="mt-2">Güvenli ödeme için Shopier kullanılmaktadır.</p>
+        </div>
+      </main>
+
+      <footer className="border-t border-gray-200 py-6 mt-auto">
         <div className="container mx-auto px-4 text-center text-gray-600 text-sm">
           © 2025 ArsaEkspertizAI - Yapay Zeka Destekli Arsa Analizi
         </div>
@@ -468,6 +571,7 @@ function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<MainApp />} />
+      <Route path="/paketler" element={<PackagesPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
