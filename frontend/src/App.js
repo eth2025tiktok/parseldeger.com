@@ -333,7 +333,7 @@ function MainApp() {
                   id="mahalle"
                   name="mahalle"
                   data-testid="input-mahalle"
-                  placeholder="Örn: Köprülü"
+                  placeholder="Örn: Bebek"
                   value={formData.mahalle}
                   onChange={handleInputChange}
                   className="mt-1 border-gray-300"
