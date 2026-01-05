@@ -13,6 +13,13 @@ import { Toaster, toast } from "sonner";
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
+// Shopier product links
+const SHOPIER_PRODUCTS = {
+  package_20: "https://shopier.com/39003278",
+  package_50: "https://shopier.com/42901869",
+  package_100: "https://shopier.com/42901899"
+};
+
 function AuthCallback() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -78,8 +85,8 @@ function Header({ user, remainingCredits, onLogin, onLogout }) {
             ArsaEkspertizAI
           </div>
         </div>
-        <div className="flex items-center space-x-4">
-          <div data-testid="credits-badge" className="border-2 border-black text-black px-4 py-2 rounded-full text-sm font-medium">
+        <div className="flex items-center space-x-2 sm:space-x-4">
+          <div data-testid="credits-badge" className="bg-white text-black px-3 sm:px-4 py-2 rounded-full text-sm font-medium">
             {remainingCredits} Hak
           </div>
           {user ? (
@@ -454,17 +461,11 @@ function PackagesPage() {
     }
   };
 
-  const handlePurchase = async (packageId) => {
-    try {
-      const response = await axios.post(`${API}/payment/create`, 
-        { package_id: packageId },
-        { withCredentials: true }
-      );
-      
-      // Redirect to Shopier payment page
-      window.location.href = response.data.payment_url;
-    } catch (err) {
-      toast.error('Ödeme oluşturulurken hata oluştu');
+  const handlePurchase = (packageId) => {
+    // Redirect to Shopier product page
+    const shopierUrl = SHOPIER_PRODUCTS[packageId];
+    if (shopierUrl) {
+      window.open(shopierUrl, '_blank');
     }
   };
 
@@ -547,7 +548,6 @@ function PackagesPage() {
 
         <div className="mt-12 text-center text-gray-600 text-sm">
           <p>Ödeme sonrası kredileriniz otomatik olarak hesabınıza yüklenecektir.</p>
-          <p className="mt-2">Güvenli ödeme için Shopier kullanılmaktadır.</p>
         </div>
       </main>
 
