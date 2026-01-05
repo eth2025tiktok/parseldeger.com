@@ -140,7 +140,7 @@ async def search_brave(query: str) -> str:
         
         params = {
             "q": query,
-            "count": 10,
+            "count": 20,
             "search_lang": "tr",
             "country": "tr"
         }
@@ -151,7 +151,7 @@ async def search_brave(query: str) -> str:
         
         results_text = []
         if 'web' in data and 'results' in data['web']:
-            for result in data['web']['results'][:5]:
+            for result in data['web']['results'][:10]:
                 title = result.get('title', '')
                 description = result.get('description', '')
                 url = result.get('url', '')
