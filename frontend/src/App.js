@@ -454,7 +454,7 @@ function PackagesPage() {
     // Check if returning from payment
     const params = new URLSearchParams(location.search);
     if (params.get('payment') === 'success') {
-      toast.success('Ödeme işlemi tamamlandı! Kredileriniz kontrol ediliyor...');
+      toast.success('✓ Ödeme işlemi başarılı! Kredileriniz kontrol ediliyor...');
       setTimeout(() => {
         checkCreditsAfterPayment();
       }, 2000);
