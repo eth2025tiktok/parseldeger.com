@@ -160,19 +160,18 @@ class ArsaEkspertizAPITester:
             return False
 
     def test_credits_exhaustion(self):
-        """Test behavior when credits are exhausted"""
+        """Test behavior when anonymous credits are exhausted"""
         try:
-            # First, let's use up the remaining credits
+            # Use up remaining credits (we already used 1, need to use 4 more)
             test_data = {
                 "il": "Ankara",
-                "ilce": "Çankaya",
+                "ilce": "Çankaya", 
                 "mahalle": "Kızılay",
                 "ada": "100",
-                "parsel": "1",
-                "session_id": self.session_id
+                "parsel": "1"
             }
             
-            # Make multiple requests to exhaust credits (we already used 1, need to use 4 more)
+            # Make multiple requests to exhaust credits
             for i in range(4):
                 print(f"🔄 Using credit {i+2}/5...")
                 response = requests.post(
@@ -183,6 +182,8 @@ class ArsaEkspertizAPITester:
                 if response.status_code != 200:
                     self.log_test("Credits Exhaustion Setup", False, f"Failed to use credit {i+2}")
                     return False
+                # Small delay between requests
+                time.sleep(1)
             
             # Now try one more request - should be rejected
             print("🚫 Testing request after credits exhausted...")
@@ -203,6 +204,11 @@ class ArsaEkspertizAPITester:
                     details += ", No JSON response"
             else:
                 details += f", Expected 403, got {response.status_code}"
+                try:
+                    error_data = response.json()
+                    details += f", Response: {error_data}"
+                except:
+                    details += f", Response: {response.text[:100]}"
             
             self.log_test("Credits Exhaustion", success, details)
             return success
