@@ -13,7 +13,7 @@ import { Toaster, toast } from "sonner";
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-// Shopier product links with user info
+// Shopier product links with user info and return URL
 const getShopierUrlWithUserInfo = (packageId, user) => {
   const baseUrls = {
     package_20: "https://shopier.com/39003278",
@@ -24,11 +24,12 @@ const getShopierUrlWithUserInfo = (packageId, user) => {
   const url = baseUrls[packageId];
   if (!url || !user) return url;
   
-  // Add user info as query parameters for better tracking
+  // Add user info and callback URL
+  const returnUrl = `${window.location.origin}/paketler?payment=success&package=${packageId}`;
   const params = new URLSearchParams({
     buyer_name: user.name,
     buyer_email: user.email,
-    user_id: user.user_id
+    callback_url: returnUrl
   });
   
   return `${url}?${params.toString()}`;
