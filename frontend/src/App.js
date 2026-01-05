@@ -434,17 +434,26 @@ function MainApp() {
 
 function PackagesPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState(null);
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [remainingCredits, setRemainingCredits] = useState(0);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [selectedPackage, setSelectedPackage] = useState(null);
-  const [checkingPayment, setCheckingPayment] = useState(false);
 
   useEffect(() => {
     checkAuthAndFetch();
   }, []);
+
+  useEffect(() => {
+    // Check if returning from payment
+    const params = new URLSearchParams(location.search);
+    if (params.get('payment') === 'success') {
+      toast.success('Ödeme işlemi tamamlandı! Kredileriniz kontrol ediliyor...');
+      setTimeout(() => {
+        checkCreditsAfterPayment();
+      }, 2000);
+    }
+  }, [location]);
 
   const checkAuthAndFetch = async () => {
     try {
@@ -469,6 +478,28 @@ function PackagesPage() {
     }
   };
 
+  const checkCreditsAfterPayment = async () => {
+    try {
+      const response = await axios.get(`${API}/credits`, { withCredentials: true });
+      const newCredits = response.data.remaining_credits;
+      
+      if (newCredits > remainingCredits) {
+        setRemainingCredits(newCredits);
+        toast.success(`Harika! ${newCredits - remainingCredits} kredi hesabınıza eklendi!`);
+        // Clear URL parameters
+        navigate('/paketler', { replace: true });
+      } else {
+        toast.info('Ödeme işleniyor. Birkaç saniye içinde kredileriniz yüklenecek...');
+        // Retry after 3 seconds
+        setTimeout(() => {
+          checkCreditsAfterPayment();
+        }, 3000);
+      }
+    } catch (err) {
+      console.error('Credit check error:', err);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await axios.post(`${API}/auth/logout`, {}, { withCredentials: true });
@@ -480,33 +511,14 @@ function PackagesPage() {
   };
 
   const handlePurchase = (pkg) => {
-    setSelectedPackage(pkg);
-    setShowPaymentModal(true);
-    // Open Shopier in new tab
-    const shopierUrl = getShopierUrlWithUserInfo(pkg.id, user);
-    window.open(shopierUrl, '_blank');
-  };
-
-  const checkPaymentStatus = async () => {
-    setCheckingPayment(true);
-    try {
-      // Refresh credits
-      const response = await axios.get(`${API}/credits`, { withCredentials: true });
-      const newCredits = response.data.remaining_credits;
-      
-      if (newCredits > remainingCredits) {
-        toast.success('Ödemeniz alındı! Kredileriniz yüklendi.');
-        setRemainingCredits(newCredits);
-        setShowPaymentModal(false);
-        setSelectedPackage(null);
-      } else {
-        toast.info('Ödeme henüz işlenmedi. Lütfen bekleyin...');
-      }
-    } catch (err) {
-      toast.error('Kredi kontrol edilirken hata oluştu');
-    } finally {
-      setCheckingPayment(false);
+    if (!user) {
+      toast.error('Lütfen önce giriş yapın');
+      return;
     }
+    
+    // Redirect to Shopier with callback URL
+    const shopierUrl = getShopierUrlWithUserInfo(pkg.id, user);
+    window.location.href = shopierUrl;
   };
 
   if (loading) {
