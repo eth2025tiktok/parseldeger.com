@@ -598,13 +598,9 @@ function PackagesPage() {
             </Card>
           ))}
         </div>
-
-        <div className="mt-3 sm:mt-8 text-center text-gray-600 text-xs">
-          <p>Ödeme sonrası kredileriniz otomatik yüklenecektir</p>
-        </div>
       </main>
 
-      <footer className="border-t border-gray-200 py-3 mt-auto">
+      <footer className="border-t border-gray-200 py-2 mt-auto">
         <div className="container mx-auto px-4 text-center text-gray-600 text-xs">
           © 2025 ArsaEkspertizAI
         </div>
