@@ -586,7 +586,7 @@ async def payment_webhook(request: Request):
 
 @api_router.get("/")
 async def root():
-    return {"message": "ArsaEkspertizAI API"}
+    return {"message": "parseldeğer.com API"}
 
 # Include router
 app.include_router(api_router)
