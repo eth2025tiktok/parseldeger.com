@@ -540,58 +540,58 @@ function PackagesPage() {
         onLogout={handleLogout} 
       />
 
-      <main className="flex-1 container mx-auto px-4 py-4 max-w-6xl">
-        <div className="mb-4">
+      <main className="flex-1 container mx-auto px-3 py-3 max-w-6xl">
+        <div className="mb-3">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => navigate('/')}
-            className="p-2 hover:bg-gray-100 rounded-full"
+            className="p-1.5 hover:bg-gray-100 rounded-full -ml-2"
             data-testid="back-button"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           
-          <div className="text-center mt-2">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-black mb-2">
+          <div className="text-center mt-1">
+            <h1 className="text-xl sm:text-3xl lg:text-4xl font-bold text-black mb-1">
               Paketler
             </h1>
-            <p className="text-xs sm:text-sm lg:text-base text-gray-600">
-              Size uygun paketi seçin ve analizlerinize devam edin
+            <p className="text-xs sm:text-sm text-gray-600">
+              Size uygun paketi seçin
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 max-w-5xl mx-auto">{packages.map((pkg) => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-4 max-w-5xl mx-auto">{packages.map((pkg) => (
             <Card 
               key={pkg.id} 
               className={`border-2 ${pkg.popular ? 'border-black' : 'border-gray-200'} hover:shadow-xl transition-all flex flex-col`}
               data-testid={`package-${pkg.id}`}
             >
-              <CardHeader className="flex-shrink-0 py-3 sm:py-4">
+              <CardHeader className="flex-shrink-0 py-2 sm:py-4 px-3 sm:px-6">
                 {pkg.popular && (
-                  <div className="text-xs font-semibold bg-black text-white px-2 py-1 rounded-full w-fit mb-1">
-                    EN POPÜLER
+                  <div className="text-xs font-semibold bg-black text-white px-2 py-0.5 rounded-full w-fit mb-1">
+                    POPÜLER
                   </div>
                 )}
-                <CardTitle className="text-lg sm:text-xl">{pkg.name}</CardTitle>
+                <CardTitle className="text-base sm:text-xl mb-0.5">{pkg.name}</CardTitle>
                 <CardDescription className="text-xs sm:text-sm">{pkg.description}</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-2 sm:space-y-3 flex-grow flex flex-col py-3 sm:py-4">
+              <CardContent className="space-y-2 flex-grow flex flex-col py-2 sm:py-4 px-3 sm:px-6">
                 <div>
                   <div className="text-2xl sm:text-3xl font-bold text-black">
                     {pkg.price} TL
                   </div>
-                  <div className="text-xs sm:text-sm text-gray-600 mt-1">
+                  <div className="text-xs text-gray-600">
                     {pkg.credits} analiz
                   </div>
                 </div>
                 <Button 
                   onClick={() => handlePurchase(pkg)}
-                  className="w-full bg-black hover:bg-gray-800 text-white py-4 sm:py-5 text-sm sm:text-base mt-auto"
+                  className="w-full bg-black hover:bg-gray-800 text-white py-3 sm:py-5 text-xs sm:text-base mt-auto"
                   data-testid={`buy-${pkg.id}`}
                 >
-                  <CreditCard className="mr-2 h-4 w-4" />
+                  <CreditCard className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />
                   Satın Al
                 </Button>
               </CardContent>
