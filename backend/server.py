@@ -522,9 +522,6 @@ async def payment_webhook(request: Request):
         
         logging.info(f"Webhook received: {data}")
         
-        # Verify webhook signature if needed (Shopier-Signature header)
-        signature_header = request.headers.get("Shopier-Signature")
-        
         # Extract payment information
         order_id = data.get('order_id') or data.get('orderId') or data.get('id')
         status = data.get('status') or data.get('paymentStatus')
