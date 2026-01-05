@@ -130,7 +130,7 @@ async def get_or_create_anonymous_session(ip: str) -> dict:
     return session
 
 async def search_brave(query: str) -> str:
-    """Search using Brave Search API"""
+    """Search using Brave Search API with multiple strategies"""
     try:
         headers = {
             "X-Subscription-Token": BRAVE_API_KEY,
@@ -138,26 +138,53 @@ async def search_brave(query: str) -> str:
             "Accept-Encoding": "gzip"
         }
         
-        params = {
+        all_results = []
+        
+        # Strategy 1: Direct query with technical terms
+        params1 = {
             "q": query,
-            "count": 20,
+            "count": 10,
             "search_lang": "tr",
             "country": "tr"
         }
         
-        response = requests.get(BRAVE_SEARCH_URL, headers=headers, params=params, timeout=10)
-        response.raise_for_status()
-        data = response.json()
+        response1 = requests.get(BRAVE_SEARCH_URL, headers=headers, params=params1, timeout=10)
+        response1.raise_for_status()
+        data1 = response1.json()
         
+        if 'web' in data1 and 'results' in data1['web']:
+            all_results.extend(data1['web']['results'][:5])
+        
+        # Strategy 2: Search for belediye imar durum (municipality zoning)
+        query_parts = query.split()
+        if len(query_parts) >= 5:  # il ilce mahalle ada parsel
+            il, ilce, mahalle = query_parts[0], query_parts[1], query_parts[2]
+            params2 = {
+                "q": f"{il} {ilce} belediyesi imar durumu {mahalle}",
+                "count": 10,
+                "search_lang": "tr",
+                "country": "tr"
+            }
+            
+            response2 = requests.get(BRAVE_SEARCH_URL, headers=headers, params=params2, timeout=10)
+            if response2.status_code == 200:
+                data2 = response2.json()
+                if 'web' in data2 and 'results' in data2['web']:
+                    all_results.extend(data2['web']['results'][:5])
+        
+        # Format results
         results_text = []
-        if 'web' in data and 'results' in data['web']:
-            for result in data['web']['results'][:10]:
+        seen_urls = set()
+        
+        for result in all_results:
+            url = result.get('url', '')
+            if url not in seen_urls:
+                seen_urls.add(url)
                 title = result.get('title', '')
                 description = result.get('description', '')
-                url = result.get('url', '')
                 results_text.append(f"Başlık: {title}\nAçıklama: {description}\nURL: {url}\n")
         
-        return "\n\n".join(results_text) if results_text else "Arama sonucu bulunamadı."
+        return "\n\n".join(results_text[:10]) if results_text else "Arama sonucu bulunamadı. Farklı bir bölge veya ada-parsel numarası deneyebilirsiniz."
     
     except Exception as e:
         logging.error(f"Brave Search error: {str(e)}")
