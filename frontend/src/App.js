@@ -83,16 +83,16 @@ function Header({ user, remainingCredits, onLogin, onLogout }) {
             {remainingCredits} Hak
           </div>
           {user ? (
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 sm:space-x-3">
               <span className="text-sm text-gray-600 hidden sm:inline">{user.name}</span>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => navigate('/paketler')}
                 data-testid="packages-button"
-                className="hidden sm:inline-flex"
+                className="text-xs sm:text-sm"
               >
-                <CreditCard className="h-4 w-4 mr-2" />
+                <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 Paketler
               </Button>
               <Button
