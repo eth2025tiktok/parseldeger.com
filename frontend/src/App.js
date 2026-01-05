@@ -553,44 +553,45 @@ function PackagesPage() {
           </Button>
           
           <div className="text-center">
-            <h1 className="text-4xl sm:text-5xl font-bold text-black mb-3">
-              Kredi Paketleri
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black mb-3">
+              Paketler
             </h1>
-            <p className="text-base sm:text-lg text-gray-600">
+            <p className="text-sm sm:text-base lg:text-lg text-gray-600">
               Size uygun paketi seçin ve analizlerinize devam edin
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {packages.map((pkg) => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 max-w-5xl mx-auto">{packages.map((pkg) => (
             <Card 
               key={pkg.id} 
-              className={`border-2 ${pkg.popular ? 'border-black scale-105' : 'border-gray-200'} hover:shadow-xl transition-all`}
+              className={`border-2 ${pkg.popular ? 'border-black' : 'border-gray-200'} hover:shadow-xl transition-all flex flex-col`}
               data-testid={`package-${pkg.id}`}
             >
-              <CardHeader>
+              <CardHeader className="flex-shrink-0">
                 {pkg.popular && (
                   <div className="text-xs font-semibold bg-black text-white px-3 py-1 rounded-full w-fit mb-2">
                     EN POPÜLER
                   </div>
                 )}
-                <CardTitle className="text-2xl">{pkg.name}</CardTitle>
-                <CardDescription className="text-base">{pkg.description}</CardDescription>
+                <CardTitle className="text-xl sm:text-2xl">{pkg.name}</CardTitle>
+                <CardDescription className="text-sm sm:text-base">{pkg.description}</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-4xl font-bold text-black">
-                  {pkg.price} TL
-                </div>
-                <div className="text-sm text-gray-600">
-                  {pkg.credits} analiz hakkı
+              <CardContent className="space-y-3 sm:space-y-4 flex-grow flex flex-col">
+                <div>
+                  <div className="text-3xl sm:text-4xl font-bold text-black">
+                    {pkg.price} TL
+                  </div>
+                  <div className="text-xs sm:text-sm text-gray-600 mt-1">
+                    {pkg.credits} analiz
+                  </div>
                 </div>
                 <Button 
                   onClick={() => handlePurchase(pkg)}
-                  className="w-full bg-black hover:bg-gray-800 text-white py-6 text-base"
+                  className="w-full bg-black hover:bg-gray-800 text-white py-5 sm:py-6 text-sm sm:text-base mt-auto"
                   data-testid={`buy-${pkg.id}`}
                 >
-                  <CreditCard className="mr-2 h-5 w-5" />
+                  <CreditCard className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                   Satın Al
                 </Button>
               </CardContent>
