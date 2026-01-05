@@ -470,22 +470,22 @@ async def get_payment_packages():
             "name": "Standart Plan",
             "credits": 20,
             "price": 50.0,
-            "description": "20 arsa analizi"
+            "description": "Küçük projeler için"
         },
         {
             "id": "package_50",
-            "name": "Popüler Plan",
+            "name": "Pro Plan",
             "credits": 50,
             "price": 75.0,
-            "description": "50 arsa analizi",
+            "description": "Orta ölçekli projeler için",
             "popular": True
         },
         {
             "id": "package_100",
-            "name": "Pro Plan",
+            "name": "Uzman Plan",
             "credits": 100,
             "price": 100.0,
-            "description": "100 arsa analizi"
+            "description": "Büyük projeler için"
         }
     ]
     return packages
