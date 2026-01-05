@@ -570,7 +570,7 @@ function PackagesPage() {
                   {pkg.credits} analiz hakkı
                 </div>
                 <Button 
-                  onClick={() => handlePurchase(pkg.id)}
+                  onClick={() => handlePurchase(pkg)}
                   className="w-full bg-black hover:bg-gray-800 text-white py-6 text-base"
                   data-testid={`buy-${pkg.id}`}
                 >
