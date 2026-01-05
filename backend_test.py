@@ -45,10 +45,10 @@ class ArsaEkspertizAPITester:
             self.log_test("Root API Endpoint", False, str(e))
             return False
 
-    def test_remaining_credits_new_session(self):
-        """Test remaining credits for a new session"""
+    def test_credits_anonymous(self):
+        """Test credits endpoint for anonymous user"""
         try:
-            response = requests.get(f"{self.api_url}/remaining-credits/{self.session_id}", timeout=10)
+            response = requests.get(f"{self.api_url}/credits", timeout=10)
             success = response.status_code == 200
             details = f"Status: {response.status_code}"
             
@@ -56,15 +56,16 @@ class ArsaEkspertizAPITester:
                 data = response.json()
                 expected_credits = 5
                 actual_credits = data.get('remaining_credits', 0)
-                success = actual_credits == expected_credits
-                details += f", Credits: {actual_credits}/{data.get('total_credits', 0)}"
+                is_authenticated = data.get('is_authenticated', True)
+                success = actual_credits == expected_credits and not is_authenticated
+                details += f", Credits: {actual_credits}, Authenticated: {is_authenticated}"
                 if not success:
-                    details += f" (Expected: {expected_credits})"
+                    details += f" (Expected: {expected_credits} credits, authenticated: False)"
             
-            self.log_test("Remaining Credits - New Session", success, details)
+            self.log_test("Credits - Anonymous User", success, details)
             return success, response.json() if success else {}
         except Exception as e:
-            self.log_test("Remaining Credits - New Session", False, str(e))
+            self.log_test("Credits - Anonymous User", False, str(e))
             return False, {}
 
     def test_property_analysis(self):
