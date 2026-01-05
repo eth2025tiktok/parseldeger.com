@@ -307,7 +307,7 @@ function MainApp() {
                     id="il"
                     name="il"
                     data-testid="input-il"
-                    placeholder="Örn: Adana"
+                    placeholder="Örn: İstanbul"
                     value={formData.il}
                     onChange={handleInputChange}
                     className="mt-1 border-gray-300"
