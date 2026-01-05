@@ -13,11 +13,25 @@ import { Toaster, toast } from "sonner";
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-// Shopier product links
-const SHOPIER_PRODUCTS = {
-  package_20: "https://shopier.com/39003278",
-  package_50: "https://shopier.com/42901869",
-  package_100: "https://shopier.com/42901899"
+// Shopier product links with user info
+const getShopierUrlWithUserInfo = (packageId, user) => {
+  const baseUrls = {
+    package_20: "https://shopier.com/39003278",
+    package_50: "https://shopier.com/42901869",
+    package_100: "https://shopier.com/42901899"
+  };
+  
+  const url = baseUrls[packageId];
+  if (!url || !user) return url;
+  
+  // Add user info as query parameters for better tracking
+  const params = new URLSearchParams({
+    buyer_name: user.name,
+    buyer_email: user.email,
+    user_id: user.user_id
+  });
+  
+  return `${url}?${params.toString()}`;
 };
 
 function AuthCallback() {
