@@ -588,9 +588,9 @@ function PackagesPage() {
         {/* Payment Modal */}
         {showPaymentModal && selectedPackage && (
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-              <div className="p-4 border-b flex items-center justify-between">
-                <h2 className="text-xl font-bold">Ödeme - {selectedPackage.name}</h2>
+            <div className="bg-white rounded-lg max-w-lg w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold">Ödeme İşlemi</h2>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -602,31 +602,51 @@ function PackagesPage() {
                   ✕
                 </Button>
               </div>
-              <div className="flex-1 overflow-auto">
-                <iframe
-                  src={getShopierUrlWithUserInfo(selectedPackage.id, user)}
-                  className="w-full h-full min-h-[600px]"
-                  title="Shopier Ödeme"
-                />
+              
+              <div className="space-y-4 mb-6">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600 mb-2">Seçilen Paket:</p>
+                  <p className="text-xl font-bold">{selectedPackage.name}</p>
+                  <p className="text-2xl font-bold text-black mt-2">{selectedPackage.price} TL</p>
+                  <p className="text-sm text-gray-600 mt-1">{selectedPackage.credits} analiz hakkı</p>
+                </div>
+                
+                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    ✓ Shopier ödeme sayfası yeni sekmede açıldı
+                  </p>
+                  <p className="text-sm text-blue-800 mt-2">
+                    ✓ Ödemenizi tamamladıktan sonra kredileriniz otomatik olarak hesabınıza yüklenecektir
+                  </p>
+                </div>
               </div>
-              <div className="p-4 border-t bg-gray-50 space-y-3">
-                <p className="text-sm text-gray-600 text-center">
-                  Ödemenizi tamamladıktan sonra kredileriniz otomatik olarak hesabınıza yüklenecektir.
-                </p>
+              
+              <div className="space-y-3">
                 <Button
                   onClick={checkPaymentStatus}
                   disabled={checkingPayment}
-                  className="w-full bg-black hover:bg-gray-800 text-white"
+                  className="w-full bg-black hover:bg-gray-800 text-white py-6"
                   data-testid="check-payment-button"
                 >
                   {checkingPayment ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                       Kontrol Ediliyor...
                     </>
                   ) : (
-                    'Ödemeyi Tamamladım'
+                    'Ödemeyi Tamamladım - Kredileri Kontrol Et'
                   )}
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const shopierUrl = getShopierUrlWithUserInfo(selectedPackage.id, user);
+                    window.open(shopierUrl, '_blank');
+                  }}
+                  className="w-full"
+                >
+                  Ödeme Sayfasını Tekrar Aç
                 </Button>
               </div>
             </div>
