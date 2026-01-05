@@ -169,11 +169,11 @@ async def analyze_with_gemini(property_info: str, search_results: str) -> str:
         chat = LlmChat(
             api_key=GEMINI_API_KEY,
             session_id="property-analysis",
-            system_message="Sen bir arsa ve gayrimenkul uzmanısın. Verilen bilgilere dayanarak detaylı imar durumu analizi yapıyorsun. Türkçe ve profesyonel bir dille cevap veriyorsun. Yanıtlarını markdown formatında değil, düz metin olarak ver. ** veya # gibi işaretler kullanma, sadece başlıkları büyük harfle yaz."
+            system_message="Sen bir arsa ve gayrimenkul uzmanısın. Verilen bilgilere dayanarak detaylı imar durumu analizi yapıyorsun. Türkçe ve profesyonel bir dille cevap veriyorsun. Yanıtlarını markdown formatında değil, düz metin olarak ver. ** veya # gibi işaretler kullanma, sadece başlıkları büyük harfle yaz. Teknik detayları (KAK, TAKS, emsal, kat yüksekliği vb.) mutlaka belirt."
         ).with_model("gemini", "gemini-3-flash-preview")
         
         user_message = UserMessage(
-            text=f"""Aşağıdaki arsa için imar durumu analizi yap:
+            text=f"""Aşağıdaki arsa için DETAYLI imar durumu analizi yap:
 
 Arsa Bilgileri:
 {property_info}
@@ -181,24 +181,39 @@ Arsa Bilgileri:
 İnternetten Bulunan Bilgiler:
 {search_results}
 
-Lütfen aşağıdaki konularda detaylı analiz yap:
+ÖNEMLİ: Analiz yaparken aşağıdaki TEKNİK BİLGİLERİ mutlaka ara ve varsa belirt:
 
 1. İMAR DURUMU
-Varsa imar durumu bilgilerini açıkla
+   - İmar durumu (imarlı/imarı yok/tarla vb.)
+   - İmar planı bilgileri
+   - Alan kullanımı (konut/ticaret/karma vb.)
 
-2. BÖLGE ÖZELLİKLERİ
-Bölgenin genel özelliklerini değerlendir
+2. YAPILAŞMA KOŞULLARI (Varsa teknik detayları belirt)
+   - KAK (Kat Alanı Katsayısı): 
+   - TAKS (Taban Alanı Katsayısı):
+   - Emsal (İnşaat Emsali):
+   - Maksimum Kat Sayısı:
+   - Yapı Yüksekliği:
+   - İnşaat Alanı:
 
-3. YAPILAŞMA KOŞULLARI
-Varsa yapılaşma koşullarını belirt
+3. BÖLGE ÖZELLİKLERİ
+   - Bölgenin konumu ve özellikleri
+   - Çevredeki gelişmeler
+   - Ulaşım imkanları
 
 4. DİKKAT EDİLMESİ GEREKEN HUSUSLAR
-Önemli notları listele
+   - Önemli kısıtlamalar
+   - Yasal düzenlemeler
+   - Riskler veya fırsatlar
 
 5. GENEL DEĞERLENDİRME
-Toparlayıcı değerlendirme yap
+   - Toparlatıcı değerlendirme
+   - Yatırım potansiyeli
 
-ÖNEMLİ: Yanıtını düz metin olarak ver. Markdown formatı kullanma (**, ##, ### gibi). Başlıkları sadece büyük harfle yaz. Temiz ve okunaklı bir format kullan."""
+ÖNEMLİ NOTLAR:
+- Eğer KAK, TAKS gibi teknik bilgileri bulamazsan, "Bu bilgiler internette bulunamadı, kesin bilgi için ilgili belediyenin İmar ve Şehircilik Müdürlüğü'ne başvurulmalıdır" şeklinde belirt.
+- Yanıtını düz metin olarak ver. Markdown formatı kullanma (**, ##, ### gibi). Başlıkları sadece büyük harfle yaz.
+- Temiz ve okunakli bir format kullan."""
         )
         
         response = await chat.send_message(user_message)
