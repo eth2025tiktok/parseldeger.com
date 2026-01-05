@@ -68,19 +68,18 @@ class ArsaEkspertizAPITester:
             self.log_test("Credits - Anonymous User", False, str(e))
             return False, {}
 
-    def test_property_analysis(self):
-        """Test property analysis with valid data"""
+    def test_property_analysis_anonymous(self):
+        """Test property analysis as anonymous user"""
         try:
             test_data = {
                 "il": "İstanbul",
-                "ilce": "Kadıköy",
+                "ilce": "Kadıköy", 
                 "mahalle": "Moda",
                 "ada": "123",
-                "parsel": "45",
-                "session_id": self.session_id
+                "parsel": "45"
             }
             
-            print(f"🔍 Testing property analysis with data: {test_data}")
+            print(f"🔍 Testing property analysis (anonymous) with data: {test_data}")
             response = requests.post(
                 f"{self.api_url}/analyze-property", 
                 json=test_data, 
@@ -100,11 +99,18 @@ class ArsaEkspertizAPITester:
                     success = False
                     details += f", Missing fields: {missing_fields}"
                 else:
-                    details += f", Analysis length: {len(data.get('analysis', ''))}"
+                    analysis_text = data.get('analysis', '')
+                    details += f", Analysis length: {len(analysis_text)}"
                     details += f", Remaining credits: {data.get('remaining_credits')}"
                     details += f", Search query: {data.get('search_query', '')[:50]}..."
                     
-                    # Verify credits decreased
+                    # Check if analysis contains markdown symbols (should be cleaned)
+                    markdown_symbols = ['**', '##', '###', '*', '#']
+                    found_markdown = [symbol for symbol in markdown_symbols if symbol in analysis_text]
+                    if found_markdown:
+                        details += f", WARNING: Found markdown symbols: {found_markdown}"
+                    
+                    # Verify credits decreased from 5 to 4
                     if data.get('remaining_credits') != 4:
                         success = False
                         details += f" (Expected 4 remaining credits, got {data.get('remaining_credits')})"
@@ -115,10 +121,10 @@ class ArsaEkspertizAPITester:
                 except:
                     details += f", Response: {response.text[:100]}"
             
-            self.log_test("Property Analysis - Valid Data", success, details)
+            self.log_test("Property Analysis - Anonymous User", success, details)
             return success, response.json() if success else {}
         except Exception as e:
-            self.log_test("Property Analysis - Valid Data", False, str(e))
+            self.log_test("Property Analysis - Anonymous User", False, str(e))
             return False, {}
 
     def test_property_analysis_missing_fields(self):
