@@ -582,8 +582,55 @@ function PackagesPage() {
           ))}
         </div>
 
-        <div className="mt-12 text-center text-gray-600 text-sm">
-          <p>Ödeme sonrası kredileriniz otomatik olarak hesabınıza yüklenecektir.</p>
+        {/* Payment Modal */}
+        {showPaymentModal && selectedPackage && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+              <div className="p-4 border-b flex items-center justify-between">
+                <h2 className="text-xl font-bold">Ödeme - {selectedPackage.name}</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowPaymentModal(false);
+                    setSelectedPackage(null);
+                  }}
+                >
+                  ✕
+                </Button>
+              </div>
+              <div className="flex-1 overflow-auto">
+                <iframe
+                  src={getShopierUrlWithUserInfo(selectedPackage.id, user)}
+                  className="w-full h-full min-h-[600px]"
+                  title="Shopier Ödeme"
+                />
+              </div>
+              <div className="p-4 border-t bg-gray-50 space-y-3">
+                <p className="text-sm text-gray-600 text-center">
+                  Ödemenizi tamamladıktan sonra kredileriniz otomatik olarak hesabınıza yüklenecektir.
+                </p>
+                <Button
+                  onClick={checkPaymentStatus}
+                  disabled={checkingPayment}
+                  className="w-full bg-black hover:bg-gray-800 text-white"
+                  data-testid="check-payment-button"
+                >
+                  {checkingPayment ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Kontrol Ediliyor...
+                    </>
+                  ) : (
+                    'Ödemeyi Tamamladım'
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-12 text-center text-gray-600 text-sm">\n          <p>Ödeme sonrası kredileriniz otomatik olarak hesabınıza yüklenecektir.</p>
         </div>
       </main>
 
