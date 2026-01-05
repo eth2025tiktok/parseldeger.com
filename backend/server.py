@@ -328,7 +328,7 @@ async def analyze_property(request_data: PropertyAnalysisRequest, request: Reque
                 )
             
             # Create search query
-            search_query = f"{request_data.il} {request_data.ilce} {request_data.mahalle} ada {request_data.ada} parsel {request_data.parsel} imar durumu"
+            search_query = f"{request_data.il} {request_data.ilce} {request_data.mahalle} ada {request_data.ada} parsel {request_data.parsel} imar durumu KAK TAKS emsal yapılaşma koşulları"
             
             # Search and analyze
             search_results = await search_brave(search_query)
@@ -368,7 +368,7 @@ async def analyze_property(request_data: PropertyAnalysisRequest, request: Reque
                 )
             
             # Create search query
-            search_query = f"{request_data.il} {request_data.ilce} {request_data.mahalle} ada {request_data.ada} parsel {request_data.parsel} imar durumu"
+            search_query = f"{request_data.il} {request_data.ilce} {request_data.mahalle} ada {request_data.ada} parsel {request_data.parsel} imar durumu KAK TAKS emsal yapılaşma koşulları"
             
             # Search and analyze
             search_results = await search_brave(search_query)
