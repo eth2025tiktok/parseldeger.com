@@ -205,16 +205,27 @@ async def search_brave(query: str) -> str:
         return f"Arama hatası: {str(e)}"
 
 async def analyze_with_gemini(property_info: str, search_results: str) -> str:
-    """Analyze property using Gemini AI"""
-    try:
-        chat = LlmChat(
-            api_key=GEMINI_API_KEY,
-            session_id="property-analysis",
-            system_message="Sen bir arsa ve gayrimenkul uzmanısın. Verilen bilgilere dayanarak detaylı imar durumu analizi yapıyorsun. Türkçe ve profesyonel bir dille cevap veriyorsun. Yanıtlarını markdown formatında değil, düz metin olarak ver. ** veya # gibi işaretler kullanma, sadece başlıkları büyük harfle yaz. Teknik detayları (KAK, TAKS, emsal, kat yüksekliği vb.) mutlaka belirt."
-        ).with_model("gemini", "gemini-3-flash-preview")
-        
-        user_message = UserMessage(
-            text=f"""Aşağıdaki arsa için DETAYLI imar durumu analizi yap:
+    """Analyze property using Gemini AI with automatic API key rotation"""
+    global CURRENT_GEMINI_KEY_INDEX
+    
+    if not GEMINI_API_KEYS:
+        return "Gemini API anahtarları yapılandırılmamış."
+    
+    # Try all API keys
+    for attempt in range(len(GEMINI_API_KEYS)):
+        try:
+            current_key = GEMINI_API_KEYS[CURRENT_GEMINI_KEY_INDEX]
+            
+            logging.info(f"Using Gemini API key #{CURRENT_GEMINI_KEY_INDEX + 1} (Key: ...{current_key[-8:]})")
+            
+            chat = LlmChat(
+                api_key=current_key,
+                session_id="property-analysis",
+                system_message="Sen bir arsa ve gayrimenkul uzmanısın. Verilen bilgilere dayanarak detaylı imar durumu analizi yapıyorsun. Türkçe ve profesyonel bir dille cevap veriyorsun. Yanıtlarını markdown formatında değil, düz metin olarak ver. ** veya # gibi işaretler kullanma, sadece başlıkları büyük harfle yaz. Teknik detayları (KAK, TAKS, emsal, kat yüksekliği vb.) mutlaka belirt."
+            ).with_model("gemini", "gemini-3-flash-preview")
+            
+            user_message = UserMessage(
+                text=f"""Aşağıdaki arsa için DETAYLI imar durumu analizi yap:
 
 Arsa Bilgileri:
 {property_info}
@@ -255,17 +266,44 @@ Arsa Bilgileri:
 - Eğer KAK, TAKS gibi teknik bilgileri bulamazsan, "Bu bilgiler internette bulunamadı, kesin bilgi için ilgili belediyenin İmar ve Şehircilik Müdürlüğü'ne başvurulmalıdır" şeklinde belirt.
 - Yanıtını düz metin olarak ver. Markdown formatı kullanma (**, ##, ### gibi). Başlıkları sadece büyük harfle yaz.
 - Temiz ve okunakli bir format kullan."""
-        )
+            )
+            
+            response = await chat.send_message(user_message)
+            
+            # Clean up any remaining markdown symbols
+            cleaned_response = response.replace('**', '').replace('##', '').replace('###', '')
+            
+            logging.info(f"✓ Gemini API key #{CURRENT_GEMINI_KEY_INDEX + 1} successful")
+            return cleaned_response
         
-        response = await chat.send_message(user_message)
-        
-        # Clean up any remaining markdown symbols
-        cleaned_response = response.replace('**', '').replace('##', '').replace('###', '')
-        return cleaned_response
+        except Exception as e:
+            error_str = str(e).lower()
+            
+            # Check if it's a quota/rate limit error
+            if any(keyword in error_str for keyword in ['quota', 'rate limit', 'resource exhausted', '429', 'quota exceeded']):
+                logging.warning(f"⚠ Gemini API key #{CURRENT_GEMINI_KEY_INDEX + 1} quota exceeded. Trying next key...")
+                
+                # Move to next key
+                CURRENT_GEMINI_KEY_INDEX = (CURRENT_GEMINI_KEY_INDEX + 1) % len(GEMINI_API_KEYS)
+                
+                # If we've tried all keys, return error
+                if attempt == len(GEMINI_API_KEYS) - 1:
+                    logging.error("❌ All Gemini API keys exhausted!")
+                    return "Tüm Gemini API anahtarlarının kotası doldu. Lütfen daha sonra tekrar deneyin."
+                
+                # Try next key
+                continue
+            else:
+                # Other error, log and try next key
+                logging.error(f"❌ Gemini API error with key #{CURRENT_GEMINI_KEY_INDEX + 1}: {str(e)}")
+                CURRENT_GEMINI_KEY_INDEX = (CURRENT_GEMINI_KEY_INDEX + 1) % len(GEMINI_API_KEYS)
+                
+                if attempt == len(GEMINI_API_KEYS) - 1:
+                    return f"Analiz hatası: {str(e)}"
+                
+                continue
     
-    except Exception as e:
-        logging.error(f"Gemini analysis error: {str(e)}")
-        return f"Analiz hatası: {str(e)}"
+    return "Analiz yapılamadı. Lütfen tekrar deneyin."
 
 # Auth Routes
 @api_router.post("/auth/session")
