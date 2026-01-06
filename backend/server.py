@@ -33,7 +33,12 @@ api_router = APIRouter(prefix="/api")
 # Configuration
 BRAVE_API_KEY = os.environ.get('BRAVE_API_KEY')
 BRAVE_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search"
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+
+# Gemini API Keys - Multiple keys for rotation
+GEMINI_API_KEYS_STR = os.environ.get('GEMINI_API_KEYS', '')
+GEMINI_API_KEYS = [key.strip() for key in GEMINI_API_KEYS_STR.split(',') if key.strip()]
+CURRENT_GEMINI_KEY_INDEX = 0
+
 SHOPIER_API_KEY = os.environ.get('SHOPIER_API_KEY')
 SHOPIER_CLIENT_SECRET = os.environ.get('SHOPIER_CLIENT_SECRET')
 SHOPIER_API_TOKEN = os.environ.get('SHOPIER_API_TOKEN')
