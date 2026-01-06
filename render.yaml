@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: parseldeger-backend
+    env: python
+    region: frankfurt
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && uvicorn server:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: PORT
+        value: 8001
+      - key: MONGO_URL
+        sync: false
+      - key: DB_NAME
+        value: parseldeger_production
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: GEMINI_API_KEYS
+        sync: false
+      - key: BRAVE_API_KEY
+        sync: false
+      - key: SHOPIER_API_KEY
+        sync: false
+      - key: SHOPIER_CLIENT_SECRET
+        sync: false
