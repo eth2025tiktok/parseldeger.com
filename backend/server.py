@@ -1,15 +1,5 @@
-from fastapi import FastAPI
 
-app = FastAPI()
-
-@app.get("/")
-def root():
-    return {"status": "ok"}
-
-@app.get("/health")
-def health():
-    return {"status": "healthy"}
-APIRouter, HTTPException, Request, Response, Cookie
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Cookie
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
